@@ -617,3 +617,46 @@ test('概览汇总', async ({ page }) => {
   await expect(page.locator('.stat-value').nth(1)).toBeVisible()
   // 验证概览页加载正常即可，不硬编码精确计数（取决于各模块 E2E 登记成功数）
 })
+
+test('维度归属校验：冲突前后省/市两档取数与归属确认', async ({ page }) => {
+  test.setTimeout(120_000)
+  const browserErrors: string[] = []
+  page.on('pageerror', e => browserErrors.push(e.message))
+  page.on('response', r => { if (r.url().includes('/api/') && r.status() >= 400) browserErrors.push(`${r.status()} ${r.url()}`) })
+
+  await page.goto('/dim_attribution')
+  // 归属数据集：5 条登记全部渲染
+  await expect(page.getByTestId('attribution-table').locator('tbody tr')).toHaveCount(5)
+
+  // 冲突日：新来源 READ_ONLY，市档请求只能由旧来源出数
+  await page.getByRole('button', { name: '冲突日 09-15' }).click()
+  await page.getByTestId('level-select').selectOption('city')
+  await page.getByTestId('run-query').click()
+  await expect(page.getByTestId('query-meta')).toContainText('legacy_dim_region')
+  await expect(page.getByTestId('group-table').locator('tbody tr')).toHaveCount(4)
+
+  // 确认新归属后切换到 09-16：出现冲突横幅
+  await page.getByTestId('confirm-REG-REGION-PROVINCE').click()
+  await page.getByRole('button', { name: '确认后 09-16' }).click()
+  await expect(page.getByTestId('conflict-banner')).toBeVisible()
+
+  // 省档默认采纳只覆盖省份的新来源，城市键落入未覆盖
+  await page.getByTestId('level-select').selectOption('province')
+  await page.getByTestId('run-query').click()
+  await expect(page.getByTestId('query-meta')).toContainText('province_dim_region')
+  await expect(page.getByTestId('query-meta')).toContainText('未覆盖 2400')
+
+  // 市档仍只能回旧来源
+  await page.getByTestId('level-select').selectOption('city')
+  await page.getByTestId('run-query').click()
+  await expect(page.getByTestId('query-meta')).toContainText('legacy_dim_region')
+  await expect(page.getByTestId('query-meta')).toContainText('已聚合 2400')
+
+  // 显式指定新来源取市级：只读/不覆盖层级必须被拒绝
+  await page.getByTestId('level-select').selectOption('city')
+  await page.getByTestId('source-select').selectOption('province_dim_region')
+  await page.getByTestId('run-query').click()
+  await expect(page.getByTestId('query-blocked')).toContainText('province_dim_region')
+
+  expect(browserErrors).toEqual([])
+})

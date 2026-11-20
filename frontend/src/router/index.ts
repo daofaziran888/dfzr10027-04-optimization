@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Overview from '@/views/Overview.vue'
 const MetricDef = () => import('@/views/metric_def/index.vue')
 const DimRegistry = () => import('@/views/dim_registry/index.vue')
+const DimAttribution = () => import('@/views/dim_attribution/index.vue')
 const AggTask = () => import('@/views/agg_task/index.vue')
 const CubeBuilder = () => import('@/views/cube_builder/index.vue')
 const CohortRule = () => import('@/views/cohort_rule/index.vue')
@@ -26,6 +27,7 @@ const router = createRouter({
     { path: '/', name: 'overview', component: Overview },
     { path: '/metric_def', name: 'metric_def', component: MetricDef },
     { path: '/dim_registry', name: 'dim_registry', component: DimRegistry },
+    { path: '/dim_attribution', name: 'dim_attribution', component: DimAttribution },
     { path: '/agg_task', name: 'agg_task', component: AggTask },
     { path: '/cube_builder', name: 'cube_builder', component: CubeBuilder },
     { path: '/cohort_rule', name: 'cohort_rule', component: CohortRule },
